@@ -1,0 +1,69 @@
+#!/bin/sh
+#
+# This file is part of iptables-m4-init.
+#
+# iptables-m4-init is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# iptables-m4-init is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with iptables-m4-init.  If not, see <http://www.gnu.org/licenses/>.
+#
+### BEGIN INIT INFO
+# Provides:          iptables
+# Required-Start:    $local_fs
+# Required-Stop:     $local_fs
+# Default-Start:     2 3 4 5
+# Default-Stop:      0 1 6
+# Short-Description: iptables-m4-init firewall rules
+# Description:       iptables-m4-init firewall rules
+### END INIT INFO
+
+DESC="iptables-m4-init firewall rules"
+
+# use lsb-base
+. /lib/lsb/init-functions
+
+CONFIG_PATH='/etc/iptables'
+IPTABLES_PATH="${CONFIG_PATH}/ipt.m4"
+IP6TABLES_PATH="${CONFIG_PATH}/ip6t.m4"
+
+if [ -f /etc/default/iptables ] ; then
+	. /etc/default/iptables
+fi
+
+RETVAL=0
+case "$1" in
+	start|force-reload|restart|reload)
+		if [ -f "$IPTABLES_PATH" ] ; then
+			log_action_begin_msg "Loading iptables firewall rules"
+			/usr/bin/m4 -I "${CONFIG_PATH}" -P "${IPTABLES_PATH}" | /sbin/iptables-restore
+			RETVAL=$?
+			log_action_end_msg $RETVAL ""
+		else
+			log_action_msg "iptables rules not found at ${IPTABLES_PATH}"
+		fi
+		if [ -f "$IP6TABLES_PATH" ] ; then
+			log_action_begin_msg "Loading ip6tables firewall rules"
+			/usr/bin/m4 -I "${CONFIG_PATH}" -P "${IP6TABLES_PATH}" | /sbin/ip6tables-restore
+			RETVAL=$?
+			log_action_end_msg $RETVAL ""
+		else
+			log_action_msg "ip6tables rules not found at ${IP6TABLES_PATH}"
+		fi
+		;;
+	stop)
+		;;
+	*)
+		echo "Usage: $0 {start|stop|restart|reload|force-reload}"
+		exit 1
+esac
+
+exit 0
+
